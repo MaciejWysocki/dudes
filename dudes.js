@@ -3,17 +3,17 @@
     const MAX_SPEED_DIST = 120;
 
     let Main = function () {
-        this.boids = [];
+        this.dudes = [];
 
         this.lastUpdate = Date.now();
         this.deltaTime = 0;
 
         for (let i = 0; i < 12; i++) {
-            this.boids = this.boids.concat(new Boid(
-                'boid-' + i,
+            this.dudes = this.dudes.concat(new Dude(
+                'dude-' + i,
                 Math.random() * (window.innerWidth - 64) + 32,
                 Math.random() * (window.innerHeight - 64) + 32,
-                'boid' + (i % 4) + '.png',
+                'dude' + (i % 4) + '.png',
                 0,    /* horizontal speed [px] */
                 0     /* vertical speed [px] */));
         }
@@ -36,8 +36,8 @@
 
     Main.prototype = {
         update: function () {
-            for (var i = 0; i < this.boids.length; i++) {
-                this.boids[i].update(this);
+            for (var i = 0; i < this.dudes.length; i++) {
+                this.dudes[i].update(this);
             }
         },
 
@@ -46,13 +46,13 @@
             mainDiv.style.top = Math.max(0, window.innerHeight / 2);
             mainDiv.style.left = Math.max(0, window.innerWidth / 2);
 
-            for (var i = 0; i < this.boids.length; i++) {
-                this.boids[i].render(this.lastUpdate);
+            for (var i = 0; i < this.dudes.length; i++) {
+                this.dudes[i].render(this.lastUpdate);
             }
         }
     };
 
-    let Boid = function (id, x, y, image, vx, vy) {
+    let Dude = function (id, x, y, image, vx, vy) {
         this.id = id;
         this.x = x;
         this.y = y;
@@ -69,18 +69,18 @@
 
         let div = document.createElement('div');
         div.setAttribute('id', this.id);
-        div.setAttribute('class', 'boid');
+        div.setAttribute('class', 'dude');
         div.style.left = this.x;
         div.style.top = this.y;
         div.appendChild(img);
 
         document.getElementById('main').appendChild(div);
     };
-    Boid.prototype.constructor = Boid;
-    Boid.prototype.update = function (main) {
-        for(let i = 0; i < main.boids.length; i++) {
-            let other = main.boids[i];
-            if(this.id !== ('boid-' + i)) {
+    Dude.prototype.constructor = Dude;
+    Dude.prototype.update = function (main) {
+        for(let i = 0; i < main.dudes.length; i++) {
+            let other = main.dudes[i];
+            if(this.id !== ('dude-' + i)) {
                 let xclose = Math.abs(other.x - this.x) < 48;
                 let yclose = Math.abs(other.y - this.y) < 48;
                 if(xclose && yclose) {
@@ -101,9 +101,9 @@
             this.vx *= main.deltaTime;
             this.vy *= main.deltaTime;
 
-            for(let i = 0; i < main.boids.length; i++) {
-                let other = main.boids[i];
-                if(this.id !== ('boid-' + i)) {
+            for(let i = 0; i < main.dudes.length; i++) {
+                let other = main.dudes[i];
+                if(this.id !== ('dude-' + i)) {
                     let xclose = Math.abs(other.x - this.x - this.vx) < 48;
                     let yclose = Math.abs(other.y - this.y - this.vy) < 48;
                     if(xclose && yclose) {
@@ -131,15 +131,15 @@
             this.vy = 0;
         }
     };
-    Boid.prototype.render = function (lastUpdate) {
-        let boidDiv = document.getElementById(this.id);
-        let boidImg = document.getElementById(this.id + '-image');
-        boidDiv.style.left = (this.x - 32) + 'px';
-        boidDiv.style.top = (this.y - 32) + 'px';
+    Dude.prototype.render = function (lastUpdate) {
+        let dudeDiv = document.getElementById(this.id);
+        let dudeImg = document.getElementById(this.id + '-image');
+        dudeDiv.style.left = (this.x - 32) + 'px';
+        dudeDiv.style.top = (this.y - 32) + 'px';
         if (this.vx != 0 || this.vy != 0) {
-            boidImg.style.marginLeft = -((Math.floor(lastUpdate / 100) % 4) * 64) + 'px';
+            dudeImg.style.marginLeft = -((Math.floor(lastUpdate / 100) % 4) * 64) + 'px';
         }
-        boidImg.style.marginTop = -(this.direction * 64) + 'px';
+        dudeImg.style.marginTop = -(this.direction * 64) + 'px';
     };
 
     let InteractionHandler = function (e) {
@@ -148,7 +148,7 @@
         window.mouseY = e.pageY;
     }
 
-    // run boids when ready
+    // run dudes when ready
     window.addEventListener('mousemove', InteractionHandler);
     window.addEventListener('touchmove', InteractionHandler);
     window.addEventListener('touchstart', InteractionHandler);
