@@ -1,0 +1,39 @@
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="user-scalable=0"> 
+        <title>Ludki chodzą sobie</title>
+        <style>
+            body {
+                margin: 0;
+                overflow: hidden;
+                touch-action: none;
+            }
+			
+			.boid {
+                width: 64px;
+                height: 64px;
+                position: absolute;
+                overflow: hidden;
+            }
+
+            #boids {
+                position: absolute;
+            }
+            
+            img {
+             	-webkit-touch-callout: none;
+  			    -webkit-user-select: none;
+ 			    -khtml-user-select: none;
+			    -moz-user-select: none;
+			    -ms-user-select: none;
+ 				user-select: none;
+ 			}
+        </style>
+    </head>
+    <body>
+        <div id="main">
+        </div>
+    </body>
+</html>
+<script src="boids.js"></script>
