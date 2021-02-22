@@ -1,6 +1,6 @@
 ﻿(function () {
-    const MAX_SPEED = 0.15;
-    const MAX_SPEED_DIST = 120;
+    const MAX_SPEED = 0.075;
+    const MAX_SPEED_DIST = 60;
 
     let Main = function () {
         this.dudes = [];
@@ -8,15 +8,18 @@
         this.lastUpdate = Date.now();
         this.deltaTime = 0;
 
-        for (let i = 0; i < 12; i++) {
+        for (let i = 0; i < 4; i++) {
             this.dudes = this.dudes.concat(new Dude(
                 'dude-' + i,
-                Math.random() * (window.innerWidth - 64) + 32,
-                Math.random() * (window.innerHeight - 64) + 32,
+                Math.random() * (window.innerWidth - 1000) + 500,
+                Math.random() * (window.innerHeight - 700) + 350,
                 'dude' + (i % 4) + '.png',
-                0,    /* horizontal speed [px] */
-                0     /* vertical speed [px] */));
+                0, 0, 4));
         }
+        // first fat dude is slow, last illuminati dude is fast
+        this.dudes[0].speed = 2;
+        this.dudes[3].speed = 8;
+
         let mainDiv = document.getElementById('main');
         mainDiv.style.width = window.innerWidth;
         mainDiv.style.height = window.innerHeight;
@@ -52,7 +55,8 @@
         }
     };
 
-    let Dude = function (id, x, y, image, vx, vy) {
+    let Dude = function (id, x, y, image, vx, vy, speed) {
+        // technical attributes
         this.id = id;
         this.x = x;
         this.y = y;
@@ -61,6 +65,12 @@
         this.image = image;
         this.direction = 1;
         this.distance = 0;
+        // game attributes
+        this.speed = speed; // 4 walks normally, plays full notes, 16 super fast, plays 1/16s
+        this.program1 = 0; // 0 - no program, follow mouse pointer, 1-5 triggers
+        this.program2 = 0; // the same but for right mouse button, allows double programs
+        this.programTarget = 0; // current target
+        this.lastAction = 0; // current millis of last action to calculate grace period
 
         // initialization
         let img = document.createElement('img');
@@ -93,10 +103,10 @@
 
         this.distance = Math.sqrt(Math.pow(window.mouseX - this.x, 2) + Math.pow(window.mouseY - this.y, 2));
         move: if (this.distance > 10) {
-            this.vx = this.distance >= MAX_SPEED_DIST ? MAX_SPEED * (window.mouseX - this.x) / this.distance :
-                ((1 - Math.cos(Math.PI * this.distance / MAX_SPEED_DIST)) * (MAX_SPEED / 2)) * (window.mouseX - this.x) / this.distance;
-            this.vy = this.distance >= MAX_SPEED_DIST ? MAX_SPEED * (window.mouseY - this.y) / this.distance :
-                ((1 - Math.cos(Math.PI * this.distance / MAX_SPEED_DIST)) * (MAX_SPEED / 2)) * (window.mouseY - this.y) / this.distance;
+            this.vx = this.distance >= this.speed * MAX_SPEED_DIST ? this.speed * MAX_SPEED * (window.mouseX - this.x) / this.distance :
+                ((1 - Math.cos(Math.PI * this.distance / (this.speed * MAX_SPEED_DIST))) * (this.speed * MAX_SPEED / 2)) * (window.mouseX - this.x) / this.distance;
+            this.vy = this.distance >= this.speed * MAX_SPEED_DIST ? this.speed * MAX_SPEED * (window.mouseY - this.y) / this.distance :
+                ((1 - Math.cos(Math.PI * this.distance / (this.speed * MAX_SPEED_DIST))) * (this.speed * MAX_SPEED / 2)) * (window.mouseY - this.y) / this.distance;
 
             this.vx *= main.deltaTime;
             this.vy *= main.deltaTime;
@@ -137,7 +147,7 @@
         dudeDiv.style.left = (this.x - 32) + 'px';
         dudeDiv.style.top = (this.y - 32) + 'px';
         if (this.vx != 0 || this.vy != 0) {
-            dudeImg.style.marginLeft = -((Math.floor(lastUpdate / 100) % 4) * 64) + 'px';
+            dudeImg.style.marginLeft = -((Math.floor(this.speed * lastUpdate / 400) % 4) * 64) + 'px';
         }
         dudeImg.style.marginTop = -(this.direction * 64) + 'px';
     };
