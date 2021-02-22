@@ -4,9 +4,16 @@
 
     let Main = function () {
         this.dudes = [];
+        this.triggers = [];
 
         this.lastUpdate = Date.now();
         this.deltaTime = 0;
+
+        this.triggers = this.triggers.concat(new Trigger(window.innerWidth / 2 - 400, 500, 4, [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0], 3));
+        this.triggers = this.triggers.concat(new Trigger(window.innerWidth / 2 + 400, 350, 3, [0,0,1,0,0,1,0,0,0,1,0,0,0,0,1,0], 1));
+        this.triggers = this.triggers.concat(new Trigger(window.innerWidth / 2 + 400, 200, 2, [0,0,0,0,1,0,0,1,0,0,0,0,1,0,0,0], 1));
+        this.triggers = this.triggers.concat(new Trigger(window.innerWidth / 2 - 400, 350, 1, [0,0,0,0,0,0,1,0,0,0,0,1,0,0,0,0], 3));
+        this.triggers = this.triggers.concat(new Trigger(window.innerWidth / 2 - 400, 200, 0, [0,1,0,1,0,0,0,0,1,0,1,0,0,1,0,1], 3));
 
         for (let i = 0; i < 4; i++) {
             this.dudes = this.dudes.concat(new Dude(
@@ -19,7 +26,7 @@
         // first fat dude is slow, last illuminati dude is fast
         this.dudes[0].speed = 2;
         this.dudes[3].speed = 8;
-
+        
         let mainDiv = document.getElementById('main');
         mainDiv.style.width = window.innerWidth;
         mainDiv.style.height = window.innerHeight;
@@ -42,6 +49,9 @@
             for (var i = 0; i < this.dudes.length; i++) {
                 this.dudes[i].update(this);
             }
+            for (var i = 0; i < this.triggers.length; i++) {
+                this.triggers[i].update(this);
+            }
         },
 
         render: function () {
@@ -51,6 +61,9 @@
 
             for (var i = 0; i < this.dudes.length; i++) {
                 this.dudes[i].render(this.lastUpdate);
+            }
+            for (var i = 0; i < this.triggers.length; i++) {
+                this.triggers[i].render(this.lastUpdate);
             }
         }
     };
@@ -101,8 +114,12 @@
             }
         }
 
-        this.distance = Math.sqrt(Math.pow(window.mouseX - this.x, 2) + Math.pow(window.mouseY - this.y, 2));
-        move: if (this.distance > 10) {
+        if(this.programTarget === 0) {
+            this.distance = Math.sqrt(Math.pow(window.mouseX - this.x, 2) + Math.pow(window.mouseY - this.y, 2));
+        } else {
+            this.distance = Math.sqrt(Math.pow(main.triggers[this.programTarget - 1].x, 2) + Math.pow(main.triggers[this.programTarget - 1].y, 2));
+        }
+        move: if (this.distance > 20) {
             this.vx = this.distance >= this.speed * MAX_SPEED_DIST ? this.speed * MAX_SPEED * (window.mouseX - this.x) / this.distance :
                 ((1 - Math.cos(Math.PI * this.distance / (this.speed * MAX_SPEED_DIST))) * (this.speed * MAX_SPEED / 2)) * (window.mouseX - this.x) / this.distance;
             this.vy = this.distance >= this.speed * MAX_SPEED_DIST ? this.speed * MAX_SPEED * (window.mouseY - this.y) / this.distance :
@@ -150,6 +167,31 @@
             dudeImg.style.marginLeft = -((Math.floor(this.speed * lastUpdate / 400) % 4) * 64) + 'px';
         }
         dudeImg.style.marginTop = -(this.direction * 64) + 'px';
+    };
+
+    let Trigger = function (x, y, note, activations, direction) {
+        this.x = x;
+        this.y = y;
+        this.note = note;
+        this.activations = activations;
+        this.direction = direction;
+
+        // initialization
+        let img = document.createElement('img');
+        img.setAttribute('src', 'trigger.png');
+
+        let div = document.createElement('div');
+        div.setAttribute('id', this.note);
+        div.setAttribute('class', 'trigger' + this.direction);
+        div.style.left = this.x;
+        div.style.top = this.y;
+        div.appendChild(img);
+    
+        document.getElementById('main').appendChild(div);
+    };
+    Trigger.prototype.update = function (main) {
+    };
+    Trigger.prototype.render = function (lastUpdate) {
     };
 
     let InteractionHandler = function (e) {
