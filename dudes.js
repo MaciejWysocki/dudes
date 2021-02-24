@@ -1,6 +1,27 @@
 ﻿(function () {
-    const MAX_SPEED = 0.075;
-    const MAX_SPEED_DIST = 60;
+    let createElement = function(id, src, cssClass, x, y) {
+        let img = document.createElement('img');
+        img.setAttribute('id', id + '-image');
+        img.setAttribute('src', src);
+
+        let div = document.createElement('div');
+        div.setAttribute('id', id);
+        div.setAttribute('class', cssClass);
+        div.style.left = x;
+        div.style.top = y;
+        div.appendChild(img);
+
+        document.getElementById('main').appendChild(div);
+    }
+    let createTextElement = function(id, text, cssClass, x, y) {
+        let div = document.createElement('div');
+        div.setAttribute('id', id);
+        div.setAttribute('class', cssClass);
+        div.innerHTML = text;
+        div.style.left = x;
+        div.style.top = y;
+        document.getElementById('main').appendChild(div);
+    }
 
     let Main = function () {
         this.dudes = [];
@@ -9,11 +30,11 @@
         this.lastUpdate = Date.now();
         this.deltaTime = 0;
 
-        this.triggers = this.triggers.concat(new Trigger(window.innerWidth / 2 - 400, 500, 4, [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0], 3));
-        this.triggers = this.triggers.concat(new Trigger(window.innerWidth / 2 + 400, 350, 3, [0,0,1,0,0,1,0,0,0,1,0,0,0,0,1,0], 1));
-        this.triggers = this.triggers.concat(new Trigger(window.innerWidth / 2 + 400, 200, 2, [0,0,0,0,1,0,0,1,0,0,0,0,1,0,0,0], 1));
-        this.triggers = this.triggers.concat(new Trigger(window.innerWidth / 2 - 400, 350, 1, [0,0,0,0,0,0,1,0,0,0,0,1,0,0,0,0], 3));
-        this.triggers = this.triggers.concat(new Trigger(window.innerWidth / 2 - 400, 200, 0, [0,1,0,1,0,0,0,0,1,0,1,0,0,1,0,1], 3));
+        this.triggers = this.triggers.concat(new Trigger(0, window.innerWidth / 2 - 400, 200, 'e', [0,1,0,1,0,0,0,0,1,0,1,0,0,1,0,1], 3));
+        this.triggers = this.triggers.concat(new Trigger(1, window.innerWidth / 2 - 400, 350, 'g', [0,0,0,0,0,0,1,0,0,0,0,1,0,0,0,0], 3));
+        this.triggers = this.triggers.concat(new Trigger(2, window.innerWidth / 2 + 400, 200, 'a', [0,0,0,0,1,0,0,1,0,0,0,0,1,0,0,0], 1));
+        this.triggers = this.triggers.concat(new Trigger(3, window.innerWidth / 2 + 400, 350, 'h', [0,0,1,0,0,1,0,0,0,1,0,0,0,0,1,0], 1));
+        this.triggers = this.triggers.concat(new Trigger(4, window.innerWidth / 2 - 400, 500, 'c', [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0], 3));
 
         for (let i = 0; i < 4; i++) {
             this.dudes = this.dudes.concat(new Dude(
@@ -21,11 +42,11 @@
                 Math.random() * (window.innerWidth - 1000) + 500,
                 Math.random() * (window.innerHeight - 700) + 350,
                 'dude' + (i % 4) + '.png',
-                0, 0, 4));
+                0, 0, 0.2));
         }
         // first fat dude is slow, last illuminati dude is fast
-        this.dudes[0].speed = 2;
-        this.dudes[3].speed = 8;
+        this.dudes[0].speed = 0.1;
+        this.dudes[3].speed = 0.3;
         
         let mainDiv = document.getElementById('main');
         mainDiv.style.width = window.innerWidth;
@@ -46,11 +67,27 @@
 
     Main.prototype = {
         update: function () {
+            let mouseWasDown = window.mouseDown;
             for (var i = 0; i < this.dudes.length; i++) {
                 this.dudes[i].update(this);
             }
             for (var i = 0; i < this.triggers.length; i++) {
                 this.triggers[i].update(this);
+            }
+            if(window.mouseDown && mouseWasDown) {
+                for (var i = 0; i < this.dudes.length; i++) {
+                    if(this.dudes[i].thought) {
+                        this.dudes[i].program1 = -1;
+                        this.dudes[i].program2 = -1;
+                        this.dudes[i].programTarget = -1;
+                        this.dudes[i].thought = false;
+                        let thoughtToRemove = document.getElementById(this.dudes[i].id + "-thought");
+                        thoughtToRemove.parentNode.removeChild(thoughtToRemove);
+                        let programToRemove = document.getElementById(this.dudes[i].id + "-program");
+                        programToRemove.parentNode.removeChild(programToRemove);
+                    }
+                }
+                window.mouseDown = undefined;
             }
         },
 
@@ -77,35 +114,27 @@
         this.vy = vy;
         this.image = image;
         this.direction = 1;
-        this.distance = 0;
+        // this.distance = 0;
+        this.targetX;
+        this.targetY;
+        this.thought = false;
         // game attributes
         this.speed = speed; // 4 walks normally, plays full notes, 16 super fast, plays 1/16s
-        this.program1 = 0; // 0 - no program, follow mouse pointer, 1-5 triggers
-        this.program2 = 0; // the same but for right mouse button, allows double programs
-        this.programTarget = 0; // current target
+        this.program1 = -1; // 0 - no program, follow mouse pointer, 1-5 triggers
+        this.program2 = -1; // the same but for right mouse button, allows double programs
+        this.programTarget = -1; // current target
         this.lastAction = 0; // current millis of last action to calculate grace period
 
         // initialization
-        let img = document.createElement('img');
-        img.setAttribute('id', this.id + '-image');
-        img.setAttribute('src', this.image);
-
-        let div = document.createElement('div');
-        div.setAttribute('id', this.id);
-        div.setAttribute('class', 'dude');
-        div.style.left = this.x;
-        div.style.top = this.y;
-        div.appendChild(img);
-
-        document.getElementById('main').appendChild(div);
+        createElement(this.id, this.image, 'dude', this.x, this.y);
     };
     Dude.prototype.constructor = Dude;
     Dude.prototype.update = function (main) {
         for(let i = 0; i < main.dudes.length; i++) {
             let other = main.dudes[i];
             if(this.id !== ('dude-' + i)) {
-                let xclose = Math.abs(other.x - this.x) < 48;
-                let yclose = Math.abs(other.y - this.y) < 48;
+                let xclose = Math.abs(other.x - this.x) < 32;
+                let yclose = Math.abs(other.y - this.y) < 32;
                 if(xclose && yclose) {
                     this.x += Math.random() * 8 - 4;//= this.x + other.x;
                     this.y += Math.random() * 8 - 4;//= this.y + other.y;
@@ -114,16 +143,18 @@
             }
         }
 
-        if(this.programTarget === 0) {
-            this.distance = Math.sqrt(Math.pow(window.mouseX - this.x, 2) + Math.pow(window.mouseY - this.y, 2));
+        if(this.programTarget === -1) {
+            this.targetX = window.mouseX;
+            this.targetY = window.mouseY;
         } else {
-            this.distance = Math.sqrt(Math.pow(main.triggers[this.programTarget - 1].x, 2) + Math.pow(main.triggers[this.programTarget - 1].y, 2));
+            let trigger = main.triggers[this.programTarget]
+            this.targetX = trigger.x + 45 * (trigger.direction - 1) - 10;
+            this.targetY = trigger.y + 30;
         }
-        move: if (this.distance > 20) {
-            this.vx = this.distance >= this.speed * MAX_SPEED_DIST ? this.speed * MAX_SPEED * (window.mouseX - this.x) / this.distance :
-                ((1 - Math.cos(Math.PI * this.distance / (this.speed * MAX_SPEED_DIST))) * (this.speed * MAX_SPEED / 2)) * (window.mouseX - this.x) / this.distance;
-            this.vy = this.distance >= this.speed * MAX_SPEED_DIST ? this.speed * MAX_SPEED * (window.mouseY - this.y) / this.distance :
-                ((1 - Math.cos(Math.PI * this.distance / (this.speed * MAX_SPEED_DIST))) * (this.speed * MAX_SPEED / 2)) * (window.mouseY - this.y) / this.distance;
+        this.distance = Math.sqrt(Math.pow(this.targetX - this.x, 2) + Math.pow(this.targetY - this.y, 2));
+        move: if (!this.thought && this.distance > 10) {
+            this.vx = this.speed * (this.targetX - this.x) / this.distance;
+            this.vy = this.speed * (this.targetY - this.y) / this.distance;
 
             this.vx *= main.deltaTime;
             this.vy *= main.deltaTime;
@@ -131,8 +162,8 @@
             for(let i = 0; i < main.dudes.length; i++) {
                 let other = main.dudes[i];
                 if(this.id !== ('dude-' + i)) {
-                    let xclose = Math.abs(other.x - this.x - this.vx) < 48;
-                    let yclose = Math.abs(other.y - this.y - this.vy) < 48;
+                    let xclose = Math.abs(other.x - this.x - this.vx) < 32;
+                    let yclose = Math.abs(other.y - this.y - this.vy) < 32;
                     if(xclose && yclose) {
                         this.vx = 0;
                         this.vy = 0;
@@ -157,6 +188,20 @@
             this.vx = 0;
             this.vy = 0;
         }
+
+        if(window.mouseDown) {
+            if(!this.thought && Math.sqrt(Math.pow(window.mouseX - this.x, 2) + Math.pow(window.mouseY - this.y, 2)) < 30) {
+                this.vx = 0;
+                this.vy = 0;
+                this.direction = 0;
+                this.thought = true;
+                createElement(this.id + '-thought', 'thought.png', 'thought', this.x - 70, this.y - 105);
+                createTextElement(this.id + '-program', this.program(main), 'program', this.x - 50, this.y - 90);
+                window.mouseDown = false;
+            }
+        } else if (this.thought) {
+            document.getElementById(this.id + '-program').innerHTML = this.program(main);
+        }
     };
     Dude.prototype.render = function (lastUpdate) {
         let dudeDiv = document.getElementById(this.id);
@@ -164,12 +209,44 @@
         dudeDiv.style.left = (this.x - 32) + 'px';
         dudeDiv.style.top = (this.y - 32) + 'px';
         if (this.vx != 0 || this.vy != 0) {
-            dudeImg.style.marginLeft = -((Math.floor(this.speed * lastUpdate / 400) % 4) * 64) + 'px';
+            dudeImg.style.marginLeft = -((Math.floor(this.speed * lastUpdate / 20) % 4) * 64) + 'px';
         }
         dudeImg.style.marginTop = -(this.direction * 64) + 'px';
     };
+    Dude.prototype.program = function (main) {
+        let mouseOverId = -1;
+        for (var i = 0; i < main.triggers.length; i++) {
+            if(Math.sqrt(Math.pow(window.mouseX - main.triggers[i].x, 2) + Math.pow(window.mouseY - main.triggers[i].y, 2)) < 50) {
+                mouseOverId = i;
+            }
+        }
+        // Aaaaaaaaaaargh!!!
+        if(mouseOverId < 0 && this.program1 < 0) {
+            return '?';
+        }
+        if (mouseOverId < 0 && this.program1 > -1 && this.program2 < 0) {
+            return main.triggers[this.program1].note;
+        }
+        if(mouseOverId === -1) {
+            return main.triggers[this.program1].note + ' & ' + main.triggers[this.program2].note;
+        }
+        if(this.program1 < 0) {
+            return main.triggers[mouseOverId].note;
+        }
+        if(this.program2 > -1) {
+            if(mouseOverId === this.program2) {
+                return main.triggers[mouseOverId].note;
+            }
+            return main.triggers[this.program2].note + ' & ' + main.triggers[mouseOverId].note;
+        }
+        if(mouseOverId === this.program1) {
+            return main.triggers[mouseOverId].note;
+        }
+        return main.triggers[this.program1].note + ' & ' + main.triggers[mouseOverId].note;
+    }
 
-    let Trigger = function (x, y, note, activations, direction) {
+    let Trigger = function (id, x, y, note, activations, direction) {
+        this.id = id;
         this.x = x;
         this.y = y;
         this.note = note;
@@ -177,22 +254,39 @@
         this.direction = direction;
 
         // initialization
-        let img = document.createElement('img');
-        img.setAttribute('src', 'trigger.png');
-
-        let div = document.createElement('div');
-        div.setAttribute('id', this.note);
-        div.setAttribute('class', 'trigger' + this.direction);
-        div.style.left = this.x;
-        div.style.top = this.y;
-        div.appendChild(img);
-    
-        document.getElementById('main').appendChild(div);
+        createElement('trigger' + id, 'trigger.png', 'trigger' + this.direction, this.x, this.y);
     };
     Trigger.prototype.update = function (main) {
+        if(window.mouseDown && Math.sqrt(Math.pow(window.mouseX - this.x, 2) + Math.pow(window.mouseY - this.y, 2)) < 50) {
+            for (var i = 0; i < main.dudes.length; i++) {
+                let dude = main.dudes[i];
+                if(dude.thought) {
+                    if(dude.program1 < 0) {
+                        dude.program1 = this.id;
+                    } else if(dude.program2 < 0) {
+                        dude.program2 = this.id;
+                    } else {
+                        dude.program1 = dude.program2;
+                        dude.program2 = this.id;
+                    }
+                    dude.programTarget = this.id;
+                    dude.thought = false;
+                    let thoughtToRemove = document.getElementById(dude.id + "-thought");
+                    thoughtToRemove.parentNode.removeChild(thoughtToRemove);
+                    let programToRemove = document.getElementById(dude.id + "-program");
+                    programToRemove.parentNode.removeChild(programToRemove);
+                }
+            }
+            window.mouseDown = false;
+        }
     };
     Trigger.prototype.render = function (lastUpdate) {
     };
+
+    let ClickHandler = function (e) {
+        e.preventDefault();
+        window.mouseDown = true;
+    }
 
     let InteractionHandler = function (e) {
         e.preventDefault();
@@ -201,6 +295,7 @@
     }
 
     // run dudes when ready
+    window.addEventListener('mousedown', ClickHandler);
     window.addEventListener('mousemove', InteractionHandler);
     window.addEventListener('touchmove', InteractionHandler);
     window.addEventListener('touchstart', InteractionHandler);
