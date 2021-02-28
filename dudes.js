@@ -1,4 +1,7 @@
 ﻿(function () {
+    const SIXTEENTH_DURATION = 171; //ms
+    const AUDIO_CTX = new (window.AudioContext || window.webkitAudioContext)();
+
     let createElement = function(id, src, cssClass, x, y) {
         let img = document.createElement('img');
         img.setAttribute('id', id + '-image');
@@ -21,14 +24,19 @@
         div.style.left = x;
         div.style.top = y;
         document.getElementById('main').appendChild(div);
+        return div;
     }
 
     let Main = function () {
         this.dudes = [];
         this.triggers = [];
+        this.mm = new MusicMachine();
 
         this.lastUpdate = Date.now();
         this.deltaTime = 0;
+        this.hits = 0; // number of consecutive successful hits
+        this.gameStart = Date.now();
+        this.lastDance = false;
 
         this.triggers = this.triggers.concat(new Trigger(0, window.innerWidth / 2 - 400, 200, 'e', [0,1,0,1,0,0,0,0,1,0,1,0,0,1,0,1], 3));
         this.triggers = this.triggers.concat(new Trigger(1, window.innerWidth / 2 - 400, 350, 'g', [0,0,0,0,0,0,1,0,0,0,0,1,0,0,0,0], 3));
@@ -67,6 +75,19 @@
 
     Main.prototype = {
         update: function () {
+            if(this.lastDance) {
+                for (var i = 0; i < this.dudes.length; i++) {
+                    this.dudes[i].update(this);
+                }                
+                return;
+            }
+
+            if(this.hits > 31 && this.mm.noteIndex === 15) {
+                this.endGame();
+            }
+
+            this.mm.update(this);
+
             let mouseWasDown = window.mouseDown;
             for (var i = 0; i < this.dudes.length; i++) {
                 this.dudes[i].update(this);
@@ -92,6 +113,8 @@
         },
 
         render: function () {
+            this.mm.render();
+
             let mainDiv = document.getElementById('main');
             mainDiv.style.top = Math.max(0, window.innerHeight / 2);
             mainDiv.style.left = Math.max(0, window.innerWidth / 2);
@@ -102,7 +125,36 @@
             for (var i = 0; i < this.triggers.length; i++) {
                 this.triggers[i].render(this.lastUpdate);
             }
+
+            if(!this.lastDance) {
+                document.getElementById('progress-bar').style.width = Math.min(32, this.hits) * 16;
+            }
         }
+    };
+    Main.prototype.endGame = function() {
+        this.lastDance = true;
+        this.dudes = [];
+        this.triggers = [];
+        document.getElementById('main').innerHTML = '';
+
+        for (let i = 0; i < 500; i++) {
+            let dude = new Dude(
+                'dude-' + i,
+                Math.random() * window.innerWidth,
+                Math.random() * window.innerHeight,
+                'dude' + (i % 4) + '.png',
+                0, 0, Math.random() / 5);
+            dude.vx = 1;
+            this.dudes = this.dudes.concat(dude);
+        }
+
+        let finalAudio = new Audio('victory.mp3');
+        let duration = new Date(Date.now() - this.gameStart).toISOString().slice(14, -1) ;
+        finalAudio.play();
+        setTimeout(function() {
+            document.getElementById('summary-text').innerHTML = "You won the game in " + duration + "!";
+            document.getElementById('summary').style.display = 'block';
+        }, 22000);
     };
 
     let Dude = function (id, x, y, image, vx, vy, speed) {
@@ -114,7 +166,10 @@
         this.vy = vy;
         this.image = image;
         this.direction = 1;
-        // this.distance = 0;
+
+        this.pose = 1;
+        this.lastPose = 1;
+
         this.targetX;
         this.targetY;
         this.thought = false;
@@ -130,6 +185,15 @@
     };
     Dude.prototype.constructor = Dude;
     Dude.prototype.update = function (main) {
+        if(main.lastDance) {
+            this.pose = ~~(Date.now() / (2 * SIXTEENTH_DURATION)) % 2;
+            if(this.pose != this.lastPose) {
+                this.direction = Math.floor(Math.random() * 4);
+                this.lastPose = this.pose;
+            }
+            return;
+        }
+
         for(let i = 0; i < main.dudes.length; i++) {
             let other = main.dudes[i];
             if(this.id !== ('dude-' + i)) {
@@ -243,6 +307,19 @@
             return main.triggers[mouseOverId].note;
         }
         return main.triggers[this.program1].note + ' & ' + main.triggers[mouseOverId].note;
+    };
+    Dude.prototype.nextTarget = function(main) {
+        for(let i = 0; i < main.mm.music.length; i++) {
+            let j = (i + main.mm.noteIndex + 1) % main.mm.music.length;
+            if(main.mm.music[j] === this.program1 || main.mm.music[j] === this.program2) {
+                // alert("i="+i+",\nj="+j+",\nnoteIndex="+main.mm.noteIndex+",\nmusic[j]="+main.mm.music[j]+",\nmusic[j] note="+main.triggers[main.mm.music[j]].note+
+                //     ",\nprogram1="+this.program1+",\nprogram2="+this.program2+",\nstary program target="+this.programTarget+",\nnowy program target="+main.mm.music[j]);
+                this.programTarget = main.mm.music[j];
+                this.targetX = main.triggers[this.programTarget].x;
+                this.targetY = main.triggers[this.programTarget].y;
+                return;
+            }
+        }
     }
 
     let Trigger = function (id, x, y, note, activations, direction) {
@@ -250,6 +327,7 @@
         this.x = x;
         this.y = y;
         this.note = note;
+        this.cooldownEnd = 0;
         this.activations = activations;
         this.direction = direction;
 
@@ -257,6 +335,11 @@
         createElement('trigger' + id, 'trigger.png', 'trigger' + this.direction, this.x, this.y);
     };
     Trigger.prototype.update = function (main) {
+        if(this.cooldownEnd > 0 && this.cooldownEnd < Date.now()) {
+            this.cooldownEnd = 0;
+            document.getElementById('trigger' + this.id + '-image').style.marginTop = '0px';
+        }
+
         if(window.mouseDown && Math.sqrt(Math.pow(window.mouseX - this.x, 2) + Math.pow(window.mouseY - this.y, 2)) < 50) {
             for (var i = 0; i < main.dudes.length; i++) {
                 let dude = main.dudes[i];
@@ -281,6 +364,66 @@
         }
     };
     Trigger.prototype.render = function (lastUpdate) {
+    };
+    Trigger.prototype.ready = function (main) {
+        if(this.cooldownEnd === 0) {
+            for (var i = 0; i < main.dudes.length; i++) {
+                let dude = main.dudes[i];
+                let dudeIsAssigned = !dude.thought && dude.programTarget === this.id;
+                let dudeIsClose =  Math.sqrt(Math.pow(dude.x - this.x, 2) + Math.pow(dude.y - this.y, 2)) < 100;
+                if(dudeIsAssigned && dudeIsClose) {
+                    this.cooldownEnd = Date.now() + (0.4 - dude.speed) * 2000;
+                    document.getElementById('trigger' + this.id + '-image').style.marginTop = '-64px';
+                    dude.nextTarget(main);
+                    return true;
+                }
+            }
+        }
+        let triggerImageElement = document.getElementById('trigger' + this.id + '-image');
+        triggerImageElement.style.filter = 'blur(5px)';
+        setTimeout(function(){
+            triggerImageElement.style.filter = '';
+            }, 100);
+        return false;
+    };
+
+    let MusicMachine = function () {
+        this.noteIndex = 0;
+        this.lastNoteIndex = 15;
+        this.highlightBox = createTextElement("highlight-box", "", "highlight-box", window.innerWidth / 2 - 160, 16);
+        this.noteSounds = [];
+        this.noteSoundsUrls = [
+            'https://wysocki.dev/e.wav',
+            'https://wysocki.dev/g.wav',
+            'https://wysocki.dev/a.wav',
+            'https://wysocki.dev/h.wav',
+            'https://wysocki.dev/c.wav'];
+        for(let i = 0; i < this.noteSoundsUrls.length; i++) {
+            fetch(this.noteSoundsUrls[i])
+                .then(r => r.arrayBuffer())
+                .then(buf => AUDIO_CTX.decodeAudioData(buf))
+                .then(decoded => this.noteSounds[i] = decoded);
+        }
+        this.music = [4,0,3,0,2,3,1,2,0,3,0,1,2,0,3,0];
+        this.canPlayNote = false;
+    };
+    MusicMachine.prototype.update = function(main) {
+        this.noteIndex = ~~(Date.now() / SIXTEENTH_DURATION) % 16;
+        if(this.noteIndex != this.lastNoteIndex) {
+            this.canPlayNote = main.triggers[this.music[this.noteIndex]].ready(main);
+            main.hits = this.canPlayNote ? main.hits + 1 : 0;
+        }
+    };
+    MusicMachine.prototype.render = function() {
+        if(this.noteIndex != this.lastNoteIndex) {
+            this.highlightBox.style.left = window.innerWidth / 2 - 181 + (this.noteIndex) * 26.4;
+            this.highlightBox.style.backgroundColor = this.canPlayNote ? 'green' : 'red';
+            let source = AUDIO_CTX.createBufferSource();
+            source.buffer = this.noteSounds[this.music[this.noteIndex]];
+            source.connect(AUDIO_CTX.destination);
+            source.start(0, this.canPlayNote ? 0 : 0.3);
+            this.lastNoteIndex = this.noteIndex;
+        }
     };
 
     let ClickHandler = function (e) {
