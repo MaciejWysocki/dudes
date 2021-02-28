@@ -428,6 +428,8 @@
 
     let ClickHandler = function (e) {
         e.preventDefault();
+        window.mouseX = e.pageX;
+        window.mouseY = e.pageY;        
         window.mouseDown = true;
     }
 
@@ -440,7 +442,7 @@
     // run dudes when ready
     window.addEventListener('mousedown', ClickHandler);
     window.addEventListener('mousemove', InteractionHandler);
-    window.addEventListener('touchmove', InteractionHandler);
-    window.addEventListener('touchstart', InteractionHandler);
+    window.addEventListener('touchmove', ClickHandler);
+    window.addEventListener('touchstart', ClickHandler);
     window.addEventListener('load', function () { new Main(); });
 })();
