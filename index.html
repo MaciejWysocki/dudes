@@ -1,39 +1,173 @@
 <html>
-    <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="user-scalable=0"> 
-        <title>Dudes walk</title>
-        <style>
-            body {
-                margin: 0;
-                overflow: hidden;
-                touch-action: none;
-            }
-			
-			.dude {
-                width: 64px;
-                height: 64px;
-                position: absolute;
-                overflow: hidden;
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="user-scalable=0">
+    <title>Coś tu się odwala</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            touch-action: none;
+            font-weight: bold;
+            font-family: Verdana;
+        }
+
+        .dude {
+            width: 64px;
+            height: 64px;
+            position: absolute;
+            overflow: hidden;
+        }
+
+        #dudes {
+            position: absolute;
+        }
+
+        .highlight-box {
+            width: 26px;
+            height: 100px;
+            background-color: grey;
+            opacity: 20%;
+        }
+
+        .program {
+            width: 48px;
+            text-align: center;
+        }
+
+        .thought,
+        .program,
+        .highlight-box {
+            position: absolute;
+            overflow: hidden;
+        }
+
+        .trigger1,
+        .trigger3 {
+            width: 64px;
+            height: 64px;
+            position: absolute;
+            overflow: hidden;
+        }
+
+        .trigger1 {
+            transform: scaleX(-1);
+        }
+
+        .trigger-missed {
+            animation: triggere-missed 1s;
+        }
+
+        @keyframes trigger-missed {
+            0% {
+                filter: blur(5px);
             }
 
-            #dudes {
-                position: absolute;
+            100% {
+                filter: blur(0px);
             }
-            
-            img {
-             	-webkit-touch-callout: none;
-  			    -webkit-user-select: none;
- 			    -khtml-user-select: none;
-			    -moz-user-select: none;
-			    -ms-user-select: none;
- 				user-select: none;
- 			}
-        </style>
-    </head>
-    <body>
-        <div id="main">
+        }
+
+        #progress {
+            width: 512px;
+            height: 25px;
+            margin: auto;
+            top: 600px;
+            position: relative;
+            border: solid 2px black;
+            text-align: center;
+        }
+
+        #progress-bar {
+            height: 25px;
+            background-color: green;
+            opacity: 20%;
+            position: absolute;
+            top: 0px;
+        }
+
+        img {
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            -khtml-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+
+        #score {
+            width: 521px;
+            height: 130px;
+            margin: auto;
+            background-image: url("melody.png");
+        }
+
+        #summary {
+            width: 100%;
+            position: absolute;
+            top: 300px;
+            text-align: center;
+            font-weight: bold;
+            font-family: Verdana;
+            display: none;
+        }
+        #summary-box {
+            background-color: whitesmoke;
+            margin: auto;
+            border: solid 2px black;
+            width: 400px;
+            height: 110px;
+            padding-top: 50px;
+        }
+        #summary button {
+            font-weight: bold;
+            font-family: Verdana;
+            padding: 10px;
+            margin: 10px;
+        }
+
+        .help:hover .help-text {
+            display: block;
+        }
+        .help-text {
+            display: none;
+            background: #C8C8C8;
+            padding: 10px;
+            position: absolute;
+            width: 200px;
+            top: -160px;
+        }
+        .help {
+            position: fixed;
+            bottom: 10px;
+            left: 0;
+            z-index: 1;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="main">
+        <div id="score">
         </div>
-    </body>
+        <div id="progress">
+            progress...
+            <div id="progress-bar">
+            </div>
+        </div>
+        <div class="help">
+            <img src="questionmark.png" />
+            <span class="help-text">Your mission is to play the melody with dudes and triggers so that progress fills up to 100% Once you succeed you get the reward!</span>
+        </div>        
+    </div>
+    <div id="summary">
+        <div id="summary-box">
+            <div id="summary-text"></div>
+            <button id="again-button" onclick="location.reload();">Play again</button>
+        </div>
+    </div>
+</body>
+
 </html>
 <script src="dudes.js"></script>
