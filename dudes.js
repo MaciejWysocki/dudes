@@ -101,6 +101,8 @@
                         this.dudes[i].program1 = -1;
                         this.dudes[i].program2 = -1;
                         this.dudes[i].programTarget = -1;
+                        this.dudes[i].targetX = window.mouseX;
+                        this.dudes[i].targetY = window.mouseY;
                         this.dudes[i].thought = false;
                         let thoughtToRemove = document.getElementById(this.dudes[i].id + "-thought");
                         thoughtToRemove.parentNode.removeChild(thoughtToRemove);
@@ -207,10 +209,7 @@
             }
         }
 
-        if(this.programTarget === -1) {
-            this.targetX = window.mouseX;
-            this.targetY = window.mouseY;
-        } else {
+        if(this.programTarget != -1) {
             let trigger = main.triggers[this.programTarget]
             this.targetX = trigger.x + 45 * (trigger.direction - 1) - 10;
             this.targetY = trigger.y + 30;
@@ -312,8 +311,6 @@
         for(let i = 0; i < main.mm.music.length; i++) {
             let j = (i + main.mm.noteIndex + 1) % main.mm.music.length;
             if(main.mm.music[j] === this.program1 || main.mm.music[j] === this.program2) {
-                // alert("i="+i+",\nj="+j+",\nnoteIndex="+main.mm.noteIndex+",\nmusic[j]="+main.mm.music[j]+",\nmusic[j] note="+main.triggers[main.mm.music[j]].note+
-                //     ",\nprogram1="+this.program1+",\nprogram2="+this.program2+",\nstary program target="+this.programTarget+",\nnowy program target="+main.mm.music[j]);
                 this.programTarget = main.mm.music[j];
                 this.targetX = main.triggers[this.programTarget].x;
                 this.targetY = main.triggers[this.programTarget].y;
@@ -428,6 +425,8 @@
 
     let ClickHandler = function (e) {
         e.preventDefault();
+        window.mouseX = e.pageX;
+        window.mouseY = e.pageY;        
         window.mouseDown = true;
     }
 
@@ -440,7 +439,7 @@
     // run dudes when ready
     window.addEventListener('mousedown', ClickHandler);
     window.addEventListener('mousemove', InteractionHandler);
-    window.addEventListener('touchmove', InteractionHandler);
-    window.addEventListener('touchstart', InteractionHandler);
+    window.addEventListener('touchmove', ClickHandler);
+    window.addEventListener('touchstart', ClickHandler);
     window.addEventListener('load', function () { new Main(); });
 })();
